@@ -16,7 +16,10 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+
 import useDevices from "@/hooks/use-devices";
+import { Transaction } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { useTransactionActions } from "@/store/transaction";
 
 const FormSchema = z.object({
@@ -25,33 +28,57 @@ const FormSchema = z.object({
   quantity: z.preprocess((quantity) => Number(quantity), z.number()).default(1),
 });
 
-export default function AddTransactionForm() {
+interface TransactionFormProps extends React.ComponentPropsWithoutRef<"form"> {
+  transaction?: Transaction;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+export default function TransactionForm({
+  transaction,
+  setOpen,
+  className,
+  ...props
+}: TransactionFormProps) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      nik: "",
-      name: "",
-      quantity: 1,
+      nik: transaction ? transaction.nik : "",
+      name: transaction ? transaction.name : "",
+      quantity: transaction ? transaction.quantity : 1,
     },
   });
 
   const autoFocusRef = useRef<React.ElementRef<typeof Input>>(null);
   const transactionActions = useTransactionActions();
-  const { isSmallDevice, isMediumDevice, isLargeDevice } = useDevices();
+  const { isSmallDevice } = useDevices();
 
   const onSubmit = (values: z.infer<typeof FormSchema>) => {
     const { nik, name, quantity } = values;
-    transactionActions.addTransaction({ nik, name, quantity });
+
+    transaction
+      ? transactionActions.editTransaction({
+          id: transaction.id,
+          name,
+          quantity,
+        })
+      : transactionActions.addTransaction({ nik, name, quantity });
+
+    toast.success(
+      transaction
+        ? `Transaksi dengan ID: ${transaction.id} berhasil disunting!`
+        : "Transaksi baru berhasil ditambahkan!",
+      {
+        position: isSmallDevice ? "top-center" : "bottom-right",
+      },
+    );
 
     form.reset();
-
-    toast.success("Transaksi baru berhasil ditambahkan!", {
-      position: isSmallDevice ? "top-center" : "bottom-right",
-    });
 
     if (autoFocusRef.current) {
       autoFocusRef.current.focus();
     }
+
+    transaction && setOpen(false);
   };
 
   const handleStricNikLength = (event: React.FormEvent<HTMLInputElement>) => {
@@ -67,7 +94,8 @@ export default function AddTransactionForm() {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col gap-4 px-4"
+        className={cn("flex flex-col gap-4", className)}
+        {...props}
       >
         <div className="flex items-center gap-4">
           <FormField
@@ -81,12 +109,13 @@ export default function AddTransactionForm() {
                     {...field}
                     ref={autoFocusRef}
                     type="number"
-                    required
-                    autoFocus
+                    placeholder="NIK"
                     autoComplete="off"
                     minLength={16}
                     maxLength={16}
-                    placeholder="NIK"
+                    autoFocus
+                    required
+                    disabled={Boolean(transaction)}
                     onInput={handleStricNikLength}
                   />
                 </FormControl>
@@ -117,8 +146,8 @@ export default function AddTransactionForm() {
                   <Input
                     {...field}
                     type="text"
-                    autoComplete="off"
                     placeholder="Nama Lengkap"
+                    autoComplete="off"
                   />
                   <span className="text-muted-foreground absolute -top-3 right-3 bg-white p-1 text-xs font-medium">
                     optional
@@ -128,10 +157,18 @@ export default function AddTransactionForm() {
             </FormItem>
           )}
         />
-
-        <Button type="submit" disabled={!form.formState.isValid}>
-          OK
-        </Button>
+        <div className="grid grid-cols-2 gap-2 pb-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+          >
+            Nanti Saja
+          </Button>
+          <Button type="submit" disabled={!form.formState.isValid}>
+            OK
+          </Button>
+        </div>
       </form>
     </Form>
   );

@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-
 import { Toaster } from "sonner";
 
-import "./globals.css";
+import { inter } from "@/lib/fonts";
 
-const inter = Inter({ subsets: ["latin"] });
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "PLG Auto Report",
