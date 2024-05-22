@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRef } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import TransactionQuantityInput from "@/components/transaction/transaction-quantity-input";
@@ -15,6 +16,7 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import useDevices from "@/hooks/use-devices";
 import { useTransactionActions } from "@/store/transaction";
 
 const FormSchema = z.object({
@@ -35,12 +37,17 @@ export default function AddTransactionForm() {
 
   const autoFocusRef = useRef<React.ElementRef<typeof Input>>(null);
   const transactionActions = useTransactionActions();
+  const { isSmallDevice, isMediumDevice, isLargeDevice } = useDevices();
 
   const onSubmit = (values: z.infer<typeof FormSchema>) => {
     const { nik, name, quantity } = values;
     transactionActions.addTransaction({ nik, name, quantity });
 
     form.reset();
+
+    toast.success("Transaksi baru berhasil ditambahkan!", {
+      position: isSmallDevice ? "top-center" : "bottom-right",
+    });
 
     if (autoFocusRef.current) {
       autoFocusRef.current.focus();
